@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ami</title>
+    <meta
+      name="description"
+      content="A lightweight terminal AI agent built with Bun and TypeScript."
+    />
+    <meta property="og:title" content="Ami" />
+    <meta
+      property="og:description"
+      content="A lightweight terminal AI agent for quick answers, local tools, and Git workflows."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#f9f9f9" />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="corner-nav" aria-label="Ami links">
+      <a
+        class="github-link"
+        href="https://github.com/dogxii/ami"
+        aria-label="View Ami on GitHub"
+      >
+        <img src="./assets/github.svg" alt="" width="42" height="42" />
+      </a>
+    </header>
+
+    <main class="page-shell">
+      <section class="intro" aria-labelledby="ami-title">
+        <div class="title-lockup">
+          <div class="mark" aria-hidden="true">
+            <span class="prompt">&gt;</span>
+            <span class="cursor">_</span>
+          </div>
+          <h1 id="ami-title">ami</h1>
+        </div>
+        <p class="tagline">Lightweight terminal AI agent</p>
+      </section>
+
+      <section class="showcase" aria-label="Ami terminal preview">
+        <div class="mode-switch" aria-label="Preview modes">
+          <button class="active" type="button" data-mode="ask">ask</button>
+          <button type="button" data-mode="tools">tools</button>
+          <button type="button" data-mode="git">git</button>
+        </div>
+
+        <div class="terminal-card">
+          <pre><code><span class="muted">~/repo</span> ami "explain this project"</code>
+<code><span class="tool">read_file</span> ... <span class="tool">search_code</span> ...</code>
+<code>Ami reads local files safely, calls small tools, and replies in the terminal.</code>
+<code><span class="muted">gpt-5.5-mini · tools 2 · 742 tokens</span></code></pre>
+        </div>
+      </section>
+
+      <section class="install-row" aria-label="Install Ami">
+        <div class="install-command">
+          <span>$ npm i -g @dogxi/ami</span>
+        </div>
+        <a href="https://github.com/dogxii/ami">View on GitHub</a>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

@@ -16,7 +16,7 @@
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#f9f9f9" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260618-5" />
   </head>
   <body>
     <header class="corner-nav" aria-label="Ami links">
@@ -42,17 +42,24 @@
       </section>
 
       <section class="showcase" aria-label="Ami terminal preview">
-        <div class="mode-switch" aria-label="Preview modes">
-          <button class="active" type="button" data-mode="ask">ask</button>
-          <button type="button" data-mode="tools">tools</button>
-          <button type="button" data-mode="git">git</button>
-        </div>
-
-        <div class="terminal-card">
-          <pre><code><span class="muted">~/repo</span> ami "explain this project"</code>
+        <div class="terminal-window">
+          <div class="terminal-toolbar">
+            <div class="traffic-lights" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="mode-switch" aria-label="Preview modes">
+              <button class="active" type="button" data-mode="ask">ask</button>
+              <button type="button" data-mode="tools">tools</button>
+              <button type="button" data-mode="git">git</button>
+            </div>
+          </div>
+          <pre><code><span class="muted">~/repo</span> ami "what does this project do?"</code>
 <code><span class="tool">read_file</span> ... <span class="tool">search_code</span> ...</code>
-<code>Ami reads local files safely, calls small tools, and replies in the terminal.</code>
-<code><span class="muted">gpt-5.5-mini · tools 2 · 742 tokens</span></code></pre>
+<code>Ami is a lightweight terminal agent built with Bun and TypeScript.
+It supports natural-language tasks, tool calls, streaming output, and Git helpers.</code>
+<code><span class="muted">gpt-5.4-mini · read_file x1, search_code x1 · 684 tokens</span></code></pre>
         </div>
       </section>
 

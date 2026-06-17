@@ -6,8 +6,7 @@
   --muted: #8f8f8f;
   --line: #ededed;
   --panel: rgba(255, 255, 255, 0.92);
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
-  --pill-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  --hairline: rgba(0, 0, 0, 0.045);
 }
 
 * {
@@ -20,6 +19,7 @@ html {
 }
 
 body {
+  position: relative;
   min-height: 100svh;
   margin: 0;
   overflow-x: hidden;
@@ -87,6 +87,8 @@ button {
 }
 
 .page-shell {
+  position: relative;
+  z-index: 1;
   width: min(100%, 940px);
   margin: 0 auto;
   padding: 78px 20px 34px;
@@ -147,62 +149,80 @@ h1 {
 
 .showcase {
   position: relative;
-  min-height: 420px;
+  display: grid;
+  min-height: 384px;
+  place-items: center;
   margin: 34px auto 0;
   border-radius: 20px;
 }
 
-.showcase::before {
-  position: absolute;
-  top: 48px;
-  left: 50%;
+.terminal-window {
+  position: relative;
+  z-index: 2;
   width: min(74vw, 640px);
-  min-height: 356px;
-  content: "";
-  transform: translateX(-50%);
+  height: 348px;
+  overflow: hidden;
   border-radius: 18px;
-  background:
-    linear-gradient(
-      172deg,
-      transparent 0 46%,
-      rgba(255, 255, 255, 0.78) 46% 53%,
-      transparent 53%
-    ),
-    linear-gradient(
-      86deg,
-      transparent 0 63%,
-      rgba(255, 255, 255, 0.68) 63% 70%,
-      transparent 70%
-    ),
-    #eeeeee;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.025);
+  background: #151515;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.terminal-toolbar {
+  display: grid;
+  min-height: 58px;
+  grid-template-columns: 74px minmax(0, 1fr) 74px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 16px;
+  background: #1d1d1d;
+}
+
+.traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.traffic-lights span {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+}
+
+.traffic-lights span:nth-child(1) {
+  background: #ff5f57;
+}
+
+.traffic-lights span:nth-child(2) {
+  background: #febc2e;
+}
+
+.traffic-lights span:nth-child(3) {
+  background: #28c840;
 }
 
 .mode-switch {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  z-index: 5;
   display: grid;
-  grid-template-columns: repeat(3, 72px);
-  min-height: 60px;
-  transform: translateX(-50%);
-  border-radius: 18px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
+  grid-template-columns: repeat(3, minmax(54px, 68px));
+  justify-content: center;
+  gap: 4px;
+  min-height: 38px;
+  border-radius: 12px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .mode-switch button {
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 14px;
-  color: var(--soft-ink);
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.68);
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   transition:
     background 180ms ease,
@@ -215,40 +235,18 @@ h1 {
 }
 
 .mode-switch button.active {
-  background: var(--ink);
-  color: white;
+  background: #fff;
+  color: #111;
 }
 
-.terminal-card {
-  position: relative;
-  width: min(74vw, 640px);
-  min-height: 430px;
-  margin: 0 auto;
-  overflow: hidden;
-  border-radius: 0 0 18px 18px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.terminal-card::before,
-.terminal-card::after {
-  display: none;
-}
-
-.terminal-card pre {
-  position: absolute;
-  left: 50%;
-  top: 142px;
-  z-index: 3;
-  width: min(82%, 470px);
+.terminal-window pre {
+  width: 100%;
+  height: 290px;
   margin: 0;
-  transform: translateX(-50%);
-  border-radius: 14px;
-  padding: 18px 20px;
-  overflow: hidden;
-  color: #191919;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: var(--pill-shadow);
+  padding: 26px 30px 28px;
+  overflow: auto;
+  color: #f4f4f4;
+  background: transparent;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: clamp(12px, 1.8vw, 14px);
   line-height: 1.65;
@@ -258,26 +256,26 @@ h1 {
     transform 180ms ease;
 }
 
-.terminal-card pre.is-changing {
+.terminal-window pre.is-changing {
   opacity: 0;
-  transform: translate(-50%, 8px);
+  transform: translateY(6px);
 }
 
-.terminal-card code {
+.terminal-window code {
   display: block;
 }
 
-.terminal-card code:first-child::before {
+.terminal-window code:first-child::before {
   content: "$ ";
-  color: #6f6f6f;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .muted {
-  color: #8b8b8b;
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .tool {
-  color: #111;
+  color: #fff;
   font-weight: 800;
 }
 
@@ -298,8 +296,7 @@ h1 {
   border-radius: 999px;
   padding: 0 18px;
   color: var(--soft-ink);
-  background: #fff;
-  box-shadow: var(--pill-shadow);
+  background: #f1f1f1;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 14px;
   font-weight: 760;
@@ -343,32 +340,38 @@ h1 {
   }
 
   .showcase {
-    min-height: 392px;
+    min-height: 390px;
     margin-top: 30px;
   }
 
-  .showcase::before {
-    top: 42px;
+  .terminal-window {
     width: min(88vw, 520px);
-    min-height: 328px;
+    height: 342px;
+  }
+
+  .terminal-toolbar {
+    min-height: 54px;
+    grid-template-columns: 58px minmax(0, 1fr) 58px;
+    padding: 0 12px;
+  }
+
+  .traffic-lights {
+    gap: 6px;
+  }
+
+  .traffic-lights span {
+    width: 9px;
+    height: 9px;
   }
 
   .mode-switch {
-    top: 12px;
-    grid-template-columns: repeat(3, 58px);
-    min-height: 62px;
-    border-radius: 16px;
+    grid-template-columns: repeat(3, 54px);
+    min-height: 36px;
   }
 
-  .terminal-card {
-    width: min(88vw, 520px);
-    min-height: 392px;
-  }
-
-  .terminal-card pre {
-    top: 126px;
-    width: 86%;
-    padding: 15px;
+  .terminal-window pre {
+    height: 288px;
+    padding: 22px 20px 24px;
   }
 
   .install-row {
@@ -386,17 +389,30 @@ h1 {
   }
 
   .showcase {
-    min-height: 372px;
+    min-height: 374px;
   }
 
-  .terminal-card {
+  .terminal-window {
     width: 92vw;
-    min-height: 372px;
+    height: 338px;
   }
 
-  .terminal-card pre {
-    top: 118px;
-    width: 88%;
+  .terminal-toolbar {
+    grid-template-columns: 46px minmax(0, 1fr) 46px;
+  }
+
+  .mode-switch {
+    grid-template-columns: repeat(3, 48px);
+  }
+
+  .mode-switch button {
+    font-size: 11px;
+  }
+
+  .terminal-window pre {
+    height: 284px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .install-command {

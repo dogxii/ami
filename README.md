@@ -10,7 +10,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 
-![Ami preview](./assets/preview.webp)
+<img src="./assets/preview.webp" alt="Ami preview" width="600" />
+
 
 ## ✨ 为什么用
 

@@ -1,51 +1,31 @@
-# Ami Agent
+# Ami
 
-Ami is a lightweight terminal AI agent built with Bun and TypeScript.
+轻量级终端 AI Agent，通过 `ami <task>` 在命令行里快速提问、读取项目上下文、调用本地工具，并辅助完成 Git commit / push 工作流。
 
-It runs small natural-language tasks from the command line, can call local tools,
-and keeps the output compact enough for daily terminal use.
+[官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-## Features
+![Version](https://img.shields.io/badge/version-0.1.0-111111?style=flat-square)
+![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
+![Bun](https://img.shields.io/badge/Bun-1.0+-000000?style=flat-square&logo=bun)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
+![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 
-- Natural-language CLI tasks with `ami <task>`
-- OpenAI-compatible chat completions
-- Streaming final answers
-- Extensible local tool registry
-- Safe file reading with cwd and size checks
-- Code search, file listing, git status, and web search tools
-- Global config stored at `~/.config/ami/config.json`
-- AI-assisted `ami commit` and guarded `ami push`
+## 为什么用
 
-## Requirements
+- 在终端里直接问项目问题，不需要切到网页聊天窗口。
+- 内置安全的本地工具调用，支持读取文件、列目录、搜索代码、查看 Git 状态和 Web Search。
+- 支持 OpenAI-compatible API，可接入 OpenAI、DeepSeek、Qwen 或自定义服务。
+- 输出保持简洁，适合快速问答、代码理解和日常开发辅助。
+- 提供 `ami commit` / `ami push`，让提交信息和推送流程更顺手。
 
-- Bun 1.0+
-- An OpenAI-compatible API key
-- Optional Tavily API key for `web_search`
-
-## Install
-
-From npm:
+## 快速开始
 
 ```bash
 npm install -g @dogxi/ami
-```
-
-For local development:
-
-```bash
-bun install
-bun link
-```
-
-Then run:
-
-```bash
 ami init
 ```
 
-## Usage
-
-Ask a question from any project directory:
+然后在任意项目目录里使用：
 
 ```bash
 ami "explain src/cli.ts"
@@ -53,78 +33,94 @@ ami "summarize the git status"
 ami "search where loadConfig is used"
 ```
 
-List available tools:
+## 配置
 
-```bash
-ami tools
+`ami init` 会交互式创建全局配置文件：
+
+```text
+~/.config/ami/config.json
 ```
 
-Run a tool directly:
-
-```bash
-ami tool read_file '{"path":"src/cli.ts"}'
-```
-
-Generate a commit message from staged changes:
-
-```bash
-ami commit
-```
-
-Stage all changes before generating the commit message:
-
-```bash
-ami commit --all
-```
-
-Push committed changes after branch checks:
-
-```bash
-ami push
-```
-
-## Config
-
-Create the global config interactively:
-
-```bash
-ami init
-```
-
-Show current config:
+也可以手动查看和修改：
 
 ```bash
 ami config
-```
-
-Set a config value:
-
-```bash
-ami config set model deepseek-chat
+ami config get model
+ami config set model gpt-5.4-mini
 ami config set apiKey sk-...
 ami config set tavilyApiKey tvly-...
 ```
 
-Environment variables override the config file:
+环境变量优先级高于配置文件：
 
 ```bash
 AMI_BASE_URL=https://api.deepseek.com/
 AMI_API_KEY=...
-AMI_MODEL=deepseek-chat
+AMI_MODEL=gpt-5.4-mini
 AMI_TAVILY_API_KEY=...
 ```
 
-## Development
+`AMI_TAVILY_API_KEY` 仅在使用 `web_search` 工具时需要。
+
+## 命令
 
 ```bash
+ami <task>              # 执行自然语言任务
+ami init                # 初始化全局配置
+ami config              # 查看当前配置
+ami config get <key>    # 读取配置项
+ami config set <key> <value>  # 更新配置项
+ami tools               # 列出可用工具
+ami tool <name> [json]  # 手动运行工具
+ami commit              # 根据 staged diff 生成提交信息并提交
+ami commit --all        # 先 git add -A，再生成提交信息
+ami push                # 检查分支状态并推送
+ami push --yes          # 跳过 push 确认
+```
+
+## 工具能力
+
+| 工具 | 说明 |
+| --- | --- |
+| `read_file` | 读取当前目录内的文本文件 |
+| `list_files` | 列出当前目录内的文件和文件夹 |
+| `search_code` | 在当前目录内搜索代码文本 |
+| `git_status` | 查看 Git working tree 状态 |
+| `web_search` | 使用 Tavily 搜索最新或外部信息 |
+| `list_tools` | 列出所有本地工具 |
+
+## 安全边界
+
+- `read_file` 只能读取当前工作目录内的文件。
+- `.env`、`.git`、`node_modules` 会被文件读取工具拦截。
+- 大文件会被拒绝读取，避免终端输出失控。
+- `ami commit` 会展示生成的 commit message，并在确认后才提交。
+- `ami push` 会检查 upstream、ahead commits 和未提交更改，并在确认后才推送。
+
+## 本地开发
+
+```bash
+git clone https://github.com/dogxii/ami.git
+cd ami
+bun install
 bun run dev "explain package.json"
+```
+
+类型检查：
+
+```bash
 bun typecheck
 ```
 
-## Safety Notes
+本地链接 CLI：
 
-- `read_file` only reads files inside the current working directory.
-- `.env`, `.git`, and `node_modules` paths are blocked from file reads.
-- Large files are rejected by the file reading tool.
-- `ami commit` asks for confirmation before committing.
-- `ami push` checks branch status and asks for confirmation unless `--yes` is used.
+```bash
+bun link
+ami tools
+```
+
+官网页面在 `site/` 目录，可直接作为静态站部署。
+
+## License
+
+MIT [@Dogxi](https://github.com/dogxii)

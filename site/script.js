@@ -1,19 +1,24 @@
-const terminalPreview = document.querySelector('.terminal-card pre')
+const terminalPreview = document.querySelector('.terminal-window pre')
 const modeButtons = document.querySelectorAll('.mode-switch button')
 
 const previews = {
-  ask: `<code><span class="muted">~/repo</span> ami "explain this project"</code>
+  ask: `<code><span class="muted">~/repo</span> ami "what does this project do?"</code>
 <code><span class="tool">read_file</span> ... <span class="tool">search_code</span> ...</code>
-<code>Ami reads local files safely, calls small tools, and replies in the terminal.</code>
-<code><span class="muted">gpt-4.1-mini · tools 2 · 742 tokens</span></code>`,
+<code>Ami is a lightweight terminal agent built with Bun and TypeScript.
+It supports natural-language tasks, tool calls, streaming output, and Git helpers.</code>
+<code><span class="muted">gpt-5.4-mini · read_file x1, search_code x1 · 684 tokens</span></code>`,
   tools: `<code><span class="muted">~/repo</span> ami tools</code>
-<code>read_file      list_files      search_code</code>
-<code>git_status     web_search      list_tools</code>
-<code><span class="muted">local tools stay small and explicit</span></code>`,
+<code>read_file   - Read a local text file</code>
+<code>list_files  - List files in a directory</code>
+<code>web_search  - Search recent or external information</code>
+<code>...</code>`,
   git: `<code><span class="muted">~/repo</span> ami commit</code>
-<code><span class="tool">git_status</span> ... <span class="tool">git_diff</span> ...</code>
-<code>chore: refine terminal landing page</code>
-<code><span class="muted">review, confirm, commit</span></code>`,
+<code>Changes
+M  site/index.html
+M  site/script.js</code>
+<code>Commit message
+docs: refine landing page preview</code>
+<code><span class="muted">Committed 4f8a2c1</span></code>`,
 }
 
 modeButtons.forEach((button) => {

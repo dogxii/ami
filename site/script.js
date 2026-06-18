@@ -4,7 +4,7 @@ const modeButtons = document.querySelectorAll('.mode-switch button')
 const previews = {
   ask: `<code><span class="muted">~/repo</span> ami "what does this project do?"</code>
 <code><span class="tool">read_file</span> ... <span class="tool">search_code</span> ...</code>
-<code>Ami is a lightweight terminal agent built with Bun and TypeScript.
+<code>Ami is a lightweight terminal agent built with TypeScript for Node.js.
 It supports natural-language tasks, tool calls, streaming output, and Git helpers.</code>
 <code><span class="muted">gpt-5.4-mini · read_file x1, search_code x1 · 684 tokens</span></code>`,
   tools: `<code><span class="muted">~/repo</span> ami tools</code>

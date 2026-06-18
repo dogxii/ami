@@ -1,5 +1,3 @@
-import { loadConfig } from '../config/loadConfig'
-
 type StreamReplyInput = {
   task: string
   baseUrl: string
@@ -182,15 +180,4 @@ function getChunkSize(queueLength: number) {
   if (queueLength > 400) return 30
   if (queueLength > 120) return 10
   return 2
-}
-
-if (import.meta.main) {
-  const config = loadConfig()
-
-  await streamReply({
-    task: '用一句话介绍你自己',
-    baseUrl: config.baseUrl,
-    model: config.model,
-    apiKey: config.apiKey,
-  })
 }

@@ -1,4 +1,4 @@
-import { $ } from 'bun'
+import { runCommand } from '../utils/command'
 import type { Tool } from './type'
 
 type SearchCodeInput = {
@@ -20,12 +20,21 @@ export const searchCodeTool: Tool<SearchCodeInput, string> = {
       throw new Error('search_code requires input: {"query": "text"}')
     }
 
-    const result =
-      await $`rg --line-number --hidden --glob '!node_modules/**' --glob '!.git/**' --glob '!.env' ${input.query}`
-        .quiet()
-        .nothrow()
+    const result = await runCommand('rg', [
+      '--line-number',
+      '--hidden',
+      '--glob',
+      '!node_modules/**',
+      '--glob',
+      '!.git/**',
+      '--glob',
+      '!.env',
+      '--',
+      input.query,
+      '.',
+    ])
 
-    const output = result.stdout.toString()
+    const output = result.stdout
 
     if (!output) {
       return 'No matches found.'

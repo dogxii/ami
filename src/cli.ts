@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { cac } from 'cac'
 import pc from 'picocolors'
 import { runAgent } from './agent/runAgent'

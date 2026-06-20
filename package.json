@@ -1,23 +1,25 @@
 {
   "name": "@dogxi/ami",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lightweight terminal agent CLI with simple tool calling.",
   "type": "module",
   "bin": {
-    "ami": "bin/ami"
+    "ami": "dist/cli.js"
   },
   "files": [
-    "bin",
-    "src",
-    "README.md"
+    "dist",
+    "README.md",
+    "assets/preview.webp"
   ],
   "engines": {
-    "bun": ">=1.0.0"
+    "node": ">=20.12.0"
   },
   "scripts": {
-    "dev": "bun src/cli.ts",
-    "start": "bun src/cli.ts",
-    "typecheck": "bunx tsc --noEmit"
+    "dev": "tsx src/cli.ts",
+    "build": "tsup && chmod +x dist/cli.js",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
   },
   "keywords": [
     "cli",
@@ -32,7 +34,9 @@
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14",
+    "@types/node": "^20.19.43",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

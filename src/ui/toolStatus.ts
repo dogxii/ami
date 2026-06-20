@@ -63,26 +63,3 @@ export function createToolStatus() {
     stop,
   }
 }
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms))
-}
-
-async function runDemo() {
-  const status = createToolStatus()
-
-  status.start('⚙ read_file')
-  await sleep(2400)
-
-  status.start('⚙ list_files')
-  await sleep(2400)
-
-  status.start('⚙ read_file')
-  await sleep(2400)
-
-  status.stop()
-}
-
-if (import.meta.main) {
-  await runDemo()
-}

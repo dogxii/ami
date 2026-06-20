@@ -4,9 +4,9 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.1.0-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.1.1-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
-![Bun](https://img.shields.io/badge/Bun-1.0+-000000?style=flat-square&logo=bun)
+![Node](https://img.shields.io/badge/Node-%3E%3D20.12-339933?style=flat-square&logo=node.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 
@@ -104,20 +104,21 @@ ami push --yes          # 跳过 push 确认
 ```bash
 git clone https://github.com/dogxii/ami.git
 cd ami
-bun install
-bun run dev "explain package.json"
+npm install
+npm run dev -- "explain package.json"
 ```
 
 类型检查：
 
 ```bash
-bun typecheck
+npm run typecheck
 ```
 
 本地链接 CLI：
 
 ```bash
-bun link
+npm run build
+npm link
 ami tools
 ```
 

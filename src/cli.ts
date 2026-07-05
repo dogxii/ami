@@ -42,6 +42,7 @@ cli
         tools: listTools().map((tool) => ({
           name: tool.name,
           description: tool.description,
+          parameters: tool.parameters,
         })),
         debug: options.debug ?? false,
       })

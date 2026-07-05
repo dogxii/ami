@@ -4,6 +4,10 @@ import type { Tool } from './type'
 export const listToolsTool: Tool<Record<string, never>, string> = {
   name: 'list_tools',
   description: 'List all available local tools.',
+  parameters: {
+    type: 'object',
+    additionalProperties: false,
+  },
   async run() {
     return listTools()
       .map((tool) => `${tool.name} - ${tool.description}`)

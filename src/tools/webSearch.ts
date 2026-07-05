@@ -20,6 +20,17 @@ export const webSearchTool: Tool<WebSearchInput, string> = {
   name: 'web_search',
   description:
     'Search the web for recent or external information. Input JSON: {"query": "search keywords"}.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Search keywords.',
+      },
+    },
+    required: ['query'],
+    additionalProperties: false,
+  },
   async run(input) {
     if (
       typeof input !== 'object' ||

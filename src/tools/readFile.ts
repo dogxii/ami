@@ -10,6 +10,17 @@ export const readFileTool: Tool<ReadFileInput, string> = {
   name: 'read_file',
   description:
     'Read a local text file inside current directory. Input JSON: {"path":"relative/file.txt"}. Blocks .env, .git, and node_modules. Max size: 100000 bytes.',
+  parameters: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'Relative path to the file.',
+      },
+    },
+    required: ['path'],
+    additionalProperties: false,
+  },
   async run(input) {
     // 输入检查
     if (

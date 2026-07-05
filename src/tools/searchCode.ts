@@ -9,6 +9,17 @@ export const searchCodeTool: Tool<SearchCodeInput, string> = {
   name: 'search_code',
   description:
     'Search code text inside the current directory. Input JSON: {"query":"text"}.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Text to search for.',
+      },
+    },
+    required: ['query'],
+    additionalProperties: false,
+  },
   async run(input) {
     if (
       typeof input !== 'object' ||

@@ -10,6 +10,16 @@ export const listFilesTool: Tool<ListFilesInput, string> = {
   name: 'list_files',
   description:
     'List files in a directory inside the current directory. Input JSON: {"path":"relative/dir"} or {}.',
+  parameters: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: 'Relative directory path. Defaults to the current directory.',
+      },
+    },
+    additionalProperties: false,
+  },
   async run(input) {
     if (typeof input !== 'object' || input === null) {
       throw new Error(

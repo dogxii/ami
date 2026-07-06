@@ -8,6 +8,7 @@ import { registerToolCommand, registerToolsCommand } from './commands/tool'
 import { initConfig } from './config/initConfig'
 import { loadConfig } from './config/loadConfig'
 import { listTools } from './tools'
+import { buildTaskWithStdin, readStdin } from './utils/stdin'
 
 const cli = cac('ami')
 
@@ -20,7 +21,13 @@ cli
       taskParts: string[] = [],
       options: { model?: string; debug?: boolean },
     ) => {
-      const task = taskParts.join(' ').trim()
+      const taskText = taskParts.join(' ').trim()
+      const stdin = await readStdin()
+      const task = buildTaskWithStdin(taskText, stdin.content)
+
+      if (stdin.truncated) {
+        console.error(pc.dim('stdin was truncated to 100000 characters'))
+      }
 
       if (!task) {
         console.log(pc.bold('ami'))

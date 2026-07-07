@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { configPath } from './path'
 
-type AmiConfig = {
+export type AmiConfig = {
   baseUrl: string
   apiKey: string
   model: string
@@ -23,9 +23,9 @@ export function loadConfig(): AmiConfig {
   }
 }
 
-type ConfigFile = Partial<AmiConfig>
+export type ConfigFile = Partial<AmiConfig>
 
-function readConfigFile(): ConfigFile {
+export function readConfigFile(): ConfigFile {
   try {
     const content = readFileSync(configPath, 'utf-8')
     return JSON.parse(content) as ConfigFile

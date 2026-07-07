@@ -1,6 +1,7 @@
-import { access, mkdir, writeFile } from 'node:fs/promises'
+import { access } from 'node:fs/promises'
 import { cancel, intro, isCancel, outro, select, text } from '@clack/prompts'
-import { configDir, configPath } from './path'
+import { configPath } from './path'
+import { saveConfig } from './saveConfig'
 
 const providerPreset = {
   openai: {
@@ -121,10 +122,7 @@ export async function initConfig() {
     tavilyApiKey: tavilyApiKey.trim(),
   }
 
-  await mkdir(configDir, { recursive: true })
-
-  const configContent = `${JSON.stringify(config, null, 2)}\n`
-  await writeFile(configPath, configContent, 'utf-8')
+  await saveConfig(config)
 
   outro(`Create config.json for ${preset.label}. Run 'ami hello' to start it!`)
 }

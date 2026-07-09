@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises'
-import { resolveInsideCwd } from './path'
+import { isBlockedPath, resolveInsideCwd } from './path'
 import type { Tool } from './type'
 
 type ReadFileInput = {
@@ -37,9 +37,7 @@ export const readFileTool: Tool<ReadFileInput, string> = {
     const { targetPath, relativePath } = resolveInsideCwd(input.path)
 
     // 文件名检查
-    const blockedNames = new Set(['.env', 'node_modules', '.git'])
-
-    if (relativePath.split('/').some((part) => blockedNames.has(part))) {
+    if (isBlockedPath(relativePath)) {
       throw new Error('read_file cannot read blocked file')
     }
 

@@ -38,6 +38,12 @@ export function createTypeWriter() {
   }
 
   function write(text: string) {
+    if (!process.stdout.isTTY) {
+      process.stdout.write(text)
+      written = true
+      return
+    }
+
     queue += text
     start()
   }

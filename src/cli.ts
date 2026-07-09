@@ -9,6 +9,7 @@ import { initConfig } from './config/initConfig'
 import { loadConfig } from './config/loadConfig'
 import { listTools } from './tools'
 import { buildTaskWithStdin, readStdin } from './utils/stdin'
+import { version } from './version'
 
 const cli = cac('ami')
 
@@ -67,5 +68,5 @@ registerCommitCommand(cli)
 registerPushCommand(cli)
 
 cli.help()
-cli.version('0.1.0')
+cli.version(version)
 cli.parse()

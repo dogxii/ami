@@ -13,3 +13,16 @@ export function resolveInsideCwd(path: string) {
     relativePath,
   }
 }
+
+export function isBlockedPath(path: string) {
+  return path.split(/[\\/]/).some(isBlockedName)
+}
+
+export function isBlockedName(name: string) {
+  return (
+    name === '.git' ||
+    name === 'node_modules' ||
+    name === '.env' ||
+    name.startsWith('.env.')
+  )
+}

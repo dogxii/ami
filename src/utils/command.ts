@@ -4,6 +4,7 @@ type CommandResult = {
   stdout: string
   stderr: string
   exitCode: number
+  errorCode?: string | number
 }
 
 export function runCommand(
@@ -26,6 +27,10 @@ export function runCommand(
           stdout: String(stdout),
           stderr: String(stderr),
           exitCode,
+          errorCode:
+            typeof errorCode === 'string' || typeof errorCode === 'number'
+              ? errorCode
+              : undefined,
         })
       },
     )

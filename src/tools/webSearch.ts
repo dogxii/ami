@@ -1,4 +1,5 @@
 import { loadConfig } from '../config/loadConfig'
+import { openResponse } from '../utils/request'
 import type { Tool } from './type'
 
 type WebSearchInput = {
@@ -54,7 +55,7 @@ export const webSearchTool: Tool<WebSearchInput, string> = {
       search_depth: 'basic',
     }
 
-    const response = await fetch('https://api.tavily.com/search', {
+    const request = await openResponse('https://api.tavily.com/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,30 +64,34 @@ export const webSearchTool: Tool<WebSearchInput, string> = {
       body: JSON.stringify(body),
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(
-        `web_search failed: ${response.status} ${errorText.slice(0, 300)}`,
-      )
+    try {
+      if (!request.response.ok) {
+        const errorText = await request.response.text()
+        throw new Error(
+          `web_search failed (${request.response.status}): ${errorText.slice(0, 300)}`,
+        )
+      }
+
+      const data = (await request.response.json()) as TavilyResponse
+
+      const results = data.results ?? []
+
+      if (results.length === 0) {
+        return 'No search results found'
+      }
+
+      return results
+        .map((result, index) =>
+          [
+            `${index + 1}. ${result.title ?? 'Untitled'}`,
+            `URL: ${result.url ?? 'No URL'}`,
+            `Content: ${result.content ?? 'No Content'}`,
+            `Score: ${result.score ?? 'No Score'}`,
+          ].join('\n'),
+        )
+        .join('\n\n')
+    } finally {
+      request.close()
     }
-
-    const data = (await response.json()) as TavilyResponse
-
-    const results = data.results ?? []
-
-    if (results.length === 0) {
-      return 'No search results found'
-    }
-
-    return results
-      .map((result, index) =>
-        [
-          `${index + 1}. ${result.title ?? 'Untitled'}`,
-          `URL: ${result.url ?? 'No URL'}`,
-          `Content: ${result.content ?? 'No Content'}`,
-          `Score: ${result.score ?? 'No Score'}`,
-        ].join('\n'),
-      )
-      .join('\n\n')
   },
 }

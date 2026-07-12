@@ -7,5 +7,12 @@ export async function getGitDiff() {
     throw new Error('Failed to read git diff')
   }
 
-  return result.stdout.trim()
+  const diff = result.stdout.trim()
+  const maxChars = 50_000
+
+  if (diff.length <= maxChars) {
+    return diff
+  }
+
+  return `${diff.slice(0, maxChars)}\n\n...diff truncated`
 }

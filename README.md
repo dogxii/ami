@@ -4,7 +4,7 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.1.1-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.2.0-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Node](https://img.shields.io/badge/Node-%3E%3D20.12-339933?style=flat-square&logo=node.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
@@ -16,6 +16,7 @@
 
 - 在终端里直接问项目问题，不需要切到网页聊天窗口。
 - 内置安全的本地工具调用，支持读取文件、列目录、搜索代码、查看 Git 状态和 Web Search。
+- 可以接收管道输入，直接解释日志、测试错误或 Git diff。
 - 支持 OpenAI-compatible API，可接入 OpenAI、DeepSeek、Qwen 或自定义服务。
 - 输出保持简洁，适合快速问答、代码理解和日常开发辅助。
 - 提供 `ami commit` / `ami push`，让提交信息和推送流程更顺手。
@@ -33,6 +34,14 @@ ami init
 ami "explain src/cli.ts"
 ami "summarize the git status"
 ami "search where loadConfig is used"
+```
+
+也可以把其他命令的输出交给 Ami：
+
+```bash
+git diff | ami "review these changes"
+npm test 2>&1 | ami "explain this error"
+cat README.md | ami "summarize"
 ```
 
 ## ⚙️ 配置
@@ -77,7 +86,9 @@ ami tool <name> [json]  # 手动运行工具
 ami commit              # 根据 staged diff 生成提交信息并提交
 ami commit --all        # 先 git add -A，再生成提交信息
 ami push                # 检查分支状态并推送
+ami push --commit       # 暂存、生成 commit 并推送
 ami push --yes          # 跳过 push 确认
+ami push --commit --yes # 跳过 commit 和 push 确认
 ```
 
 ## 工具能力
@@ -94,10 +105,11 @@ ami push --yes          # 跳过 push 确认
 ## 安全边界
 
 - `read_file` 只能读取当前工作目录内的文件。
-- `.env`、`.git`、`node_modules` 会被文件读取工具拦截。
+- `.env*`、`.git`、`node_modules` 会被文件读取和搜索工具拦截。
 - 大文件会被拒绝读取，避免终端输出失控。
 - `ami commit` 会展示生成的 commit message，并在确认后才提交。
-- `ami push` 会检查 upstream、ahead commits 和未提交更改，并在确认后才推送。
+- `ami push` 不会自动提交工作区改动，只有 `--commit` 会暂存并提交全部改动。
+- `ami push` 遇到 merge、rebase 或冲突文件时会停止，不会自动改代码、pull、rebase 或 force push。
 
 ## 🛠️ 本地开发
 

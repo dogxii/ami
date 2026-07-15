@@ -9,13 +9,13 @@ import {
   type ChatTool,
 } from '../llm/chat'
 import { getTool } from '../tools'
+import { truncateToolOutput } from '../tools/limits'
 import { createToolStatus } from '../ui/toolStatus'
 import { writeText } from '../ui/typeWriter'
 import { RequestError } from '../utils/request'
 import { parseToolCall } from './toolCall'
 
 const maxToolCalls = 5
-const maxToolResultChars = 12_000
 
 type RunAgentInput = {
   task: string
@@ -256,13 +256,7 @@ function ensureToolCallLimit(state: RunState) {
 }
 
 function clipToolResult(result: unknown) {
-  const text = String(result)
-
-  if (text.length <= maxToolResultChars) {
-    return text
-  }
-
-  return `${text.slice(0, maxToolResultChars)}\n\n...truncated`
+  return truncateToolOutput(String(result))
 }
 
 function buildToolResultText(input: { toolName: string; result: unknown }) {

@@ -3,7 +3,7 @@ import type { Tool } from './type'
 
 export const gitStatusTool: Tool<Record<string, never>, string> = {
   name: 'git_status',
-  description: 'Show git working tree. Input JSON: {}.',
+  description: 'Show the current Git working tree status. Read-only.',
   parameters: {
     type: 'object',
     additionalProperties: false,

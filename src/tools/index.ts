@@ -1,3 +1,4 @@
+import { gitDiffTool } from './gitDiff'
 import { gitStatusTool } from './gitStatus'
 import { listFilesTool } from './listFiles'
 import { listToolsTool } from './listTools'
@@ -11,6 +12,7 @@ registerTool(listToolsTool)
 registerTool(listFilesTool)
 registerTool(searchCodeTool)
 registerTool(gitStatusTool)
+registerTool(gitDiffTool)
 registerTool(webSearchTool)
 
 export { getTool, listTools } from './registry'

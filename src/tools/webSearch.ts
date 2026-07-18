@@ -1,5 +1,6 @@
 import { loadConfig } from '../config/loadConfig'
 import { openResponse } from '../utils/request'
+import { truncateToolOutput } from './limits'
 import type { Tool } from './type'
 
 type WebSearchInput = {
@@ -10,7 +11,6 @@ type TavilyResult = {
   url?: string
   title?: string
   content?: string
-  score?: number
 }
 
 type TavilyResponse = {
@@ -20,7 +20,7 @@ type TavilyResponse = {
 export const webSearchTool: Tool<WebSearchInput, string> = {
   name: 'web_search',
   description:
-    'Search the web for recent or external information. Input JSON: {"query": "search keywords"}.',
+    'Search the web when recent or external information is required. Returns source titles, URLs, and snippets. Requires a Tavily API key.',
   parameters: {
     type: 'object',
     properties: {
@@ -80,16 +80,17 @@ export const webSearchTool: Tool<WebSearchInput, string> = {
         return 'No search results found'
       }
 
-      return results
+      const output = results
         .map((result, index) =>
           [
             `${index + 1}. ${result.title ?? 'Untitled'}`,
             `URL: ${result.url ?? 'No URL'}`,
             `Content: ${result.content ?? 'No Content'}`,
-            `Score: ${result.score ?? 'No Score'}`,
           ].join('\n'),
         )
         .join('\n\n')
+
+      return truncateToolOutput(output)
     } finally {
       request.close()
     }

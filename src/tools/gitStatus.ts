@@ -10,6 +10,11 @@ export const gitStatusTool: Tool<Record<string, never>, string> = {
   },
   async run() {
     const result = await runCommand('git', ['status', '--short'])
+
+    if (result.exitCode !== 0) {
+      throw new Error('Not a git repository')
+    }
+
     const output = result.stdout
 
     if (!output) {

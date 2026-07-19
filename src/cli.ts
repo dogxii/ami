@@ -5,9 +5,11 @@ import { registerCommitCommand } from './commands/commit'
 import { registerConfigCommand } from './commands/config'
 import { registerPushCommand } from './commands/push'
 import { registerToolCommand, registerToolsCommand } from './commands/tool'
+import { registerUpdateCommand } from './commands/update'
 import { initConfig } from './config/initConfig'
 import { loadConfig } from './config/loadConfig'
 import { listTools } from './tools'
+import { findAvailableUpdate } from './update'
 import { buildTaskWithStdin, readStdin } from './utils/stdin'
 import { version } from './version'
 
@@ -41,6 +43,7 @@ cli
       }
 
       const config = loadConfig()
+      const availableUpdate = findAvailableUpdate(version)
 
       await runAgent({
         task,
@@ -54,6 +57,19 @@ cli
         })),
         debug: options.debug ?? false,
       })
+
+      if (!process.exitCode) {
+        const latestVersion = await availableUpdate
+
+        if (latestVersion) {
+          console.log('')
+          console.log(
+            pc.dim(
+              `Update available: ${version} -> ${latestVersion}. Run ami update`,
+            ),
+          )
+        }
+      }
     },
   )
 
@@ -66,6 +82,7 @@ registerToolsCommand(cli)
 registerToolCommand(cli)
 registerCommitCommand(cli)
 registerPushCommand(cli)
+registerUpdateCommand(cli)
 
 cli.help()
 cli.version(version)

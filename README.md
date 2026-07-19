@@ -4,7 +4,7 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.3.1-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.2-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Node](https://img.shields.io/badge/Node-%3E%3D20.12-339933?style=flat-square&logo=node.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square&logo=typescript)
@@ -92,7 +92,11 @@ ami push --rebase       # 获取远端更新，确认后 rebase 并推送
 ami push --yes          # 跳过 commit 和 push 确认，不跳过 rebase 确认
 ami push --rebase --yes # 明确允许无确认 rebase 和 push
 ami push --commit --rebase --yes # 暂存、提交、rebase 并推送
+ami update              # 检查并更新到最新版本
+ami update --yes        # 无需确认直接更新
 ```
+
+Ami 每 24 小时最多检查一次新版本，并只在交互式终端的问答结束后提示。设置 `AMI_NO_UPDATE_CHECK=1` 可以关闭该提示。
 
 ## 🧰 工具能力
 

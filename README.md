@@ -4,13 +4,13 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.3.0-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.1-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Node](https://img.shields.io/badge/Node-%3E%3D20.12-339933?style=flat-square&logo=node.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 
-![Ami preview](./assets/preview.webp)
+<img src="./assets/preview.webp" alt="Ami preview" width="600" />
 
 ## ✨ 为什么用
 
@@ -88,8 +88,10 @@ ami commit              # 根据 staged diff 生成提交信息并提交
 ami commit --all        # 先 git add -A，再生成提交信息
 ami push                # 检查分支状态并推送
 ami push --commit       # 暂存、生成 commit 并推送
-ami push --yes          # 跳过 push 确认
-ami push --commit --yes # 跳过 commit 和 push 确认
+ami push --rebase       # 获取远端更新，确认后 rebase 并推送
+ami push --yes          # 跳过 commit 和 push 确认，不跳过 rebase 确认
+ami push --rebase --yes # 明确允许无确认 rebase 和 push
+ami push --commit --rebase --yes # 暂存、提交、rebase 并推送
 ```
 
 ## 🧰 工具能力
@@ -111,7 +113,9 @@ ami push --commit --yes # 跳过 commit 和 push 确认
 - 文件范围、搜索结果、目录条目和 diff 输出都有上限，避免终端与上下文失控。
 - `ami commit` 会展示生成的 commit message，并在确认后才提交。
 - `ami push` 不会自动提交工作区改动，只有 `--commit` 会暂存并提交全部改动。
-- `ami push` 遇到 merge、rebase 或冲突文件时会停止，不会自动改代码、pull、rebase 或 force push。
+- `ami push` 遇到 non-fast-forward 会获取远端状态，并询问是否 rebase 后重试。
+- 只有 `--rebase --yes` 会跳过 rebase 确认；单独使用 `--yes` 不会授权 rebase。
+- rebase 出现冲突时会立即停止并保留现场，不会自动改文件、continue 或 force push。
 
 ## 🛠️ 本地开发
 

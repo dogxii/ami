@@ -8,9 +8,10 @@ const previews = {
 It supports natural-language tasks, tool calls, streaming output, and Git helpers.</code>
 <code><span class="muted">gpt-5.4-mini · read_file x1, search_code x1 · 684 tokens</span></code>`,
   tools: `<code><span class="muted">~/repo</span> ami tools</code>
-<code>read_file   - Read a local text file</code>
-<code>list_files  - List files in a directory</code>
-<code>web_search  - Search recent or external information</code>
+<code>read_file   - Read a file or line range</code>
+<code>list_files  - Explore a directory tree</code>
+<code>search_code - Search code with context</code>
+<code>git_diff    - Inspect tracked Git changes</code>
 <code>...</code>`,
   git: `<code><span class="muted">~/repo</span> ami commit</code>
 <code>Changes

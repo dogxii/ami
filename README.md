@@ -4,10 +4,10 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.2.0-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.0-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Node](https://img.shields.io/badge/Node-%3E%3D20.12-339933?style=flat-square&logo=node.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square&logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 
 ![Ami preview](./assets/preview.webp)
@@ -34,6 +34,7 @@ ami init
 ami "explain src/cli.ts"
 ami "summarize the git status"
 ami "search where loadConfig is used"
+ami "review the current changes"
 ```
 
 也可以把其他命令的输出交给 Ami：
@@ -91,22 +92,23 @@ ami push --yes          # 跳过 push 确认
 ami push --commit --yes # 跳过 commit 和 push 确认
 ```
 
-## 工具能力
+## 🧰 工具能力
 
-| 工具          | 说明                           |
-| ------------- | ------------------------------ |
-| `read_file`   | 读取当前目录内的文本文件       |
-| `list_files`  | 列出当前目录内的文件和文件夹   |
-| `search_code` | 在当前目录内搜索代码文本       |
-| `git_status`  | 查看 Git working tree 状态     |
-| `web_search`  | 使用 Tavily 搜索最新或外部信息 |
-| `list_tools`  | 列出所有本地工具               |
+| 工具          | 说明                                 |
+| ------------- | ------------------------------------ |
+| `read_file`   | 读取文本文件，支持指定起止行         |
+| `list_files`  | 查看最多三层目录结构                 |
+| `search_code` | 按路径搜索代码并返回附近上下文       |
+| `git_status`  | 查看 Git working tree 状态           |
+| `git_diff`    | 查看工作区、暂存区或全部已跟踪改动     |
+| `web_search`  | 使用 Tavily 搜索最新或外部信息       |
 
-## 安全边界
+## 🔒 安全边界
 
 - `read_file` 只能读取当前工作目录内的文件。
-- `.env*`、`.git`、`node_modules` 会被文件读取和搜索工具拦截。
-- 大文件会被拒绝读取，避免终端输出失控。
+- `.env*`、`.git`、`node_modules` 会被读取、搜索和 Git diff 工具拦截。
+- `list_files` 会显示敏感目录的存在，但不会进入其中。
+- 文件范围、搜索结果、目录条目和 diff 输出都有上限，避免终端与上下文失控。
 - `ami commit` 会展示生成的 commit message，并在确认后才提交。
 - `ami push` 不会自动提交工作区改动，只有 `--commit` 会暂存并提交全部改动。
 - `ami push` 遇到 merge、rebase 或冲突文件时会停止，不会自动改代码、pull、rebase 或 force push。

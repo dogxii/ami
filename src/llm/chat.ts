@@ -285,17 +285,9 @@ export async function streamChat(
 export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
-  const toolText = [
-    '',
-    'Available tools:',
-    ...input.tools.map((tool) => `${tool.name} - ${tool.description}`),
-    '',
-    'If you need to use a tool, respond with only JSON in this format:',
-    '{"tool":"tool_name","input":{}}',
-    'Use exactly one of the available tool names.',
-    'You can request one tool call at a time.',
-    'Do not wrap tool calls in markdown.',
-  ].join('\n')
+  const systemPrompt = input.tools.length
+    ? `${createSystemPrompt()}\n${createToolPrompt(input.tools)}`
+    : createSystemPrompt()
 
   const request = await openResponse(
     getChatUrl(input.baseUrl),
@@ -307,7 +299,7 @@ export async function generateReply(
         messages: [
           {
             role: 'system',
-            content: `${createSystemPrompt()}\n${toolText}`,
+            content: systemPrompt,
           },
           {
             role: 'user',
@@ -356,15 +348,18 @@ async function openChatResponse(
     model: input.model,
     stream: true,
     messages: input.messages,
-    tools: input.tools.map((tool) => ({
+  }
+
+  if (input.tools.length > 0) {
+    body.tools = input.tools.map((tool) => ({
       type: 'function',
       function: {
         name: tool.name,
         description: tool.description,
         parameters: tool.parameters,
       },
-    })),
-    tool_choice: 'auto',
+    }))
+    body.tool_choice = 'auto'
   }
 
   if (includeUsage) {
@@ -386,6 +381,20 @@ async function openChatResponse(
     request.close()
     throw error
   }
+}
+
+function createToolPrompt(tools: ChatTool[]) {
+  return [
+    '',
+    'Available tools:',
+    ...tools.map((tool) => `${tool.name} - ${tool.description}`),
+    '',
+    'If you need to use a tool, respond with only JSON in this format:',
+    '{"tool":"tool_name","input":{}}',
+    'Use exactly one of the available tool names.',
+    'You can request one tool call at a time.',
+    'Do not wrap tool calls in markdown.',
+  ].join('\n')
 }
 
 async function assertOk(response: Response) {

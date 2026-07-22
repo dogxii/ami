@@ -9,6 +9,7 @@ import { registerUpdateCommand } from './commands/update'
 import { initConfig } from './config/initConfig'
 import { loadConfig } from './config/loadConfig'
 import { listTools } from './tools'
+import { selectTools } from './tools/select'
 import { findAvailableUpdate } from './update'
 import { buildTaskWithStdin, readStdin } from './utils/stdin'
 import { version } from './version'
@@ -44,13 +45,16 @@ cli
 
       const config = loadConfig()
       const availableUpdate = findAvailableUpdate(version)
+      const tools = selectTools(taskText, listTools(), {
+        hasStdin: Boolean(stdin.content),
+      })
 
       await runAgent({
         task,
         model: options.model ?? config.model,
         baseUrl: config.baseUrl,
         apiKey: config.apiKey,
-        tools: listTools().map((tool) => ({
+        tools: tools.map((tool) => ({
           name: tool.name,
           description: tool.description,
           parameters: tool.parameters,

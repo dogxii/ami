@@ -4,26 +4,28 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
+const processHelperFlag = "--ami-process-helper"
+
 func TestProcessHelper(t *testing.T) {
-	if os.Getenv("AMI_PROCESS_HELPER") != "1" {
+	if !slices.Contains(os.Args, processHelperFlag) {
 		return
 	}
 	args := os.Args
 	for len(args) > 0 && args[0] != "--" {
 		args = args[1:]
 	}
-	if len(args) < 2 {
+	if len(args) < 3 {
 		os.Exit(3)
 	}
-	switch args[1] {
+	switch args[2] {
 	case "large":
 		os.Stdout.WriteString(strings.Repeat("x", 12*1024*1024))
 		fmt.Fprint(os.Stderr, "failure details")
@@ -55,26 +57,13 @@ func helperProgram(t *testing.T, mode string) (string, []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return exe, []string{"-test.run=TestProcessHelper", "--", mode}
+	return exe, []string{"-test.run=TestProcessHelper", "--", processHelperFlag, mode}
 }
 
-// Credential filtering intentionally excludes AMI_*; use a dedicated marker in helper argv environment.
 func startHelper(t *testing.T, r *Runtime, mode string, timeout time.Duration) string {
 	t.Helper()
 	exe, args := helperProgram(t, mode)
-	wrapper := filepath.Join(t.TempDir(), "helper")
-	if runtime.GOOS == "windows" {
-		wrapper += ".cmd"
-		os.WriteFile(wrapper, []byte("@set AMI_PROCESS_HELPER=1\r\n@\""+exe+"\" "+strings.Join(args, " ")+"\r\n"), 0755)
-		program, argv := shellCommand("& '" + wrapper + "'")
-		id, err := r.Processes.startProgram(program, argv, r.Session.Cwd, timeout, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		return id
-	}
-	os.WriteFile(wrapper, []byte("#!/bin/sh\nAMI_PROCESS_HELPER=1 exec '"+exe+"' "+strings.Join(args, " ")+"\n"), 0755)
-	id, err := r.Processes.startProgram(wrapper, nil, r.Session.Cwd, timeout, "")
+	id, err := r.Processes.startProgram(exe, args, r.Session.Cwd, timeout, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,11 +167,8 @@ func TestProcessBinaryAndFailingEventSink(t *testing.T) {
 		return nil
 	})
 	defer p.dispose()
-	exe, _ := os.Executable()
-	if runtime.GOOS == "windows" {
-		t.Skip("shell fixture below is Unix")
-	}
-	id, err = p.start("AMI_PROCESS_HELPER=1 '"+exe+"' -test.run=TestProcessHelper -- binary", r.Session.Cwd, time.Second)
+	exe, args := helperProgram(t, "binary")
+	id, err = p.startProgram(exe, args, r.Session.Cwd, time.Second, "")
 	if err != nil {
 		t.Fatal(err)
 	}

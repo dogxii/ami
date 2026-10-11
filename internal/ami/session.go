@@ -193,7 +193,8 @@ func (s *Session) restore() error {
 		return fmt.Errorf("invalid or missing session history")
 	}
 	if torn {
-		if err = s.log.Truncate(offset); err != nil {
+		// Windows append handles cannot truncate; reopen with write access for repair.
+		if err = os.Truncate(s.log.Name(), offset); err != nil {
 			return err
 		}
 		if err = s.record(event{"type": "session.recovered", "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "reason": "Incomplete final record"}); err != nil {

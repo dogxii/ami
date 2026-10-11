@@ -63,7 +63,7 @@ Normal stdout carries assistant text, stderr progress; JSON mode carries JSONL e
 
 ## Build, install and update
 
-`make build` creates a stripped, CGO-free binary. CI tests on macOS/Linux/Windows; the tag release workflow reuses those tests before building six amd64/arm64 executables and `checksums.txt`. `scripts/install.sh` and `update.go` verify SHA-256 before replacing an executable. Optional 24-hour cached update notices run in the background and never delay completion.
+`make build` creates a stripped, CGO-free binary. Source builds require Go 1.24+; CI and releases use Go 1.26.x. CI tests on macOS/Linux/Windows; the tag release workflow reuses those tests before building six amd64/arm64 executables and `checksums.txt`. `scripts/install.sh` and `update.go` verify SHA-256 before replacing an executable. Optional 24-hour cached update notices run in the background and never delay completion.
 
 The npm package has zero npm dependencies and only installs/launches the matching native release. Its file allowlist excludes downloaded executables so a local installation cannot accidentally package one platform's binary. Local npm development commands invoke Go; direct binary use avoids launcher overhead. `VERSION` is embedded in every Go build; release validation checks that the tag and npm version agree with it.
 

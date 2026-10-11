@@ -64,7 +64,7 @@ func TestAgentReadRunEditVerifyBeyondFiveTools(t *testing.T) {
 		reproduce = "if (Select-String -Quiet -Pattern fixed source.txt) { exit 0 } else { exit 1 }"
 		verify = reproduce
 	}
-	calls := []Call{toolCall("read", "read_file", event{"path": "source.txt"}), toolCall("reproduce", "exec_command", event{"command": reproduce}), toolCall("edit", "edit_file", event{"path": "source.txt", "oldText": "bad", "newText": "fixed"}), toolCall("verify", "exec_command", event{"command": verify}), toolCall("reread", "read_file", event{"path": "source.txt"}), toolCall("list", "list_files", event{})}
+	calls := []Call{toolCall("read", "read_file", event{"path": "source.txt"}), toolCall("reproduce", "exec_command", event{"command": reproduce, "waitMs": 30000}), toolCall("edit", "edit_file", event{"path": "source.txt", "oldText": "bad", "newText": "fixed"}), toolCall("verify", "exec_command", event{"command": verify, "waitMs": 30000}), toolCall("reread", "read_file", event{"path": "source.txt"}), toolCall("list", "list_files", event{})}
 	step := 0
 	p := model(t, func(body event, w http.ResponseWriter) {
 		if step < len(calls) {

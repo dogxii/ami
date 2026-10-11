@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -21,7 +22,7 @@ import (
 var cliBinary string
 
 func TestMain(m *testing.M) {
-	if os.Getenv("AMI_PROCESS_HELPER") == "1" {
+	if slices.Contains(os.Args, processHelperFlag) {
 		os.Exit(m.Run())
 	}
 	dir, err := os.MkdirTemp("", "ami-cli-test-")

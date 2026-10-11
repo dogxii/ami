@@ -36,7 +36,10 @@ test('npm installation downloads and verifies through the configured proxy', asy
   const f = await fixture();
   try {
     const script = `import { install } from ${JSON.stringify(new URL('../bin/install.js', import.meta.url).href)}; await install({ base: process.argv[1], releaseBase: process.argv[2] });`;
-    const child = spawn(process.execPath, ['--input-type=module', '-e', script, f.directory, 'http://ami-download.invalid'], { env: { ...process.env, http_proxy: f.base, HTTP_PROXY: '', HTTPS_PROXY: '', https_proxy: '', ALL_PROXY: '', all_proxy: '', NO_PROXY: '', no_proxy: '' }, stdio: ['ignore', 'ignore', 'pipe'] });
+    const proxyEnv = { ...process.env };
+    for (const name of Object.keys(proxyEnv)) if (/^(https?|all|no)_proxy$/i.test(name)) delete proxyEnv[name];
+    proxyEnv.http_proxy = f.base;
+    const child = spawn(process.execPath, ['--input-type=module', '-e', script, f.directory, 'http://ami-download.invalid'], { env: proxyEnv, stdio: ['ignore', 'ignore', 'pipe'] });
     let error = ''; child.stderr.on('data', chunk => { error += chunk; });
     const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
     assert.equal(code, 0, error);

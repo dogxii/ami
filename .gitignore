@@ -4,3 +4,7 @@ node_modules
 dist
 coverage
 *.log
+*.test
+*.test.exe
+bin/ami-native
+bin/ami-native.exe

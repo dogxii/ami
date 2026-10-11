@@ -1,0 +1,33 @@
+name: Native release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: test "${GITHUB_REF_NAME}" = "v$(cat VERSION)"
+      - shell: bash
+        run: |
+          mkdir -p dist/release
+          for os in darwin linux windows; do
+            for arch in amd64 arm64; do
+              suffix=''
+              if [ "$os" = windows ]; then suffix='.exe'; fi
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o "dist/release/ami_${os}_${arch}${suffix}" ./cmd/ami
+            done
+          done
+          cd dist/release
+          sha256sum ami_* > checksums.txt
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/release/* --verify-tag --notes-file "docs/releases/${GITHUB_REF_NAME#v}.md"

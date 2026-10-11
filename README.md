@@ -4,7 +4,7 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.5.0-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.1-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Go](https://img.shields.io/badge/Go-%3E%3D1.24-00ADD8?style=flat-square&logo=go)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/dogxii/ami/main/scripts/install.sh 
 npm install -g @dogxi/ami
 ```
 
-npm 只负责下载并启动原生程序；直接使用二进制能获得更快启动。安装目标默认 `~/.local/bin`，可用 `AMI_INSTALL_DIR` 指定。
+npm 只负责下载并启动原生程序；直接使用二进制能获得更快启动。安装目标默认 `~/.local/bin`，可用 `AMI_INSTALL_DIR` 指定。配置了 HTTP(S)/ALL_PROXY 时，npm 安装器使用系统 `curl` 下载，并遵循 `NO_PROXY`；否则使用 Node 内置下载。
 
 也可从源码构建（Go 1.24+）：
 

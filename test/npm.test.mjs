@@ -23,13 +23,28 @@ async function fixture(valid = true) {
   const arch = { x64: 'amd64', arm64: 'arm64' }[process.arch];
   const asset = `ami_${os}_${arch}${process.platform === 'win32' ? '.exe' : ''}`;
   const hash = valid ? createHash('sha256').update(payload).digest('hex') : '0'.repeat(64);
+  const requests = [];
   const server = createServer((req, res) => {
+    requests.push(req.url);
     if (req.url.endsWith('/checksums.txt')) res.end(`${hash}  ${asset}\n`);
     else res.end(payload);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  return { directory, payload, base: `http://127.0.0.1:${server.address().port}`, cleanup: async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await rm(directory, { recursive: true, force: true }); } };
+  return { directory, payload, requests, base: `http://127.0.0.1:${server.address().port}`, cleanup: async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await rm(directory, { recursive: true, force: true }); } };
 }
+test('npm installation downloads and verifies through the configured proxy', async () => {
+  const f = await fixture();
+  try {
+    const script = `import { install } from ${JSON.stringify(new URL('../bin/install.js', import.meta.url).href)}; await install({ base: process.argv[1], releaseBase: process.argv[2] });`;
+    const child = spawn(process.execPath, ['--input-type=module', '-e', script, f.directory, 'http://ami-download.invalid'], { env: { ...process.env, http_proxy: f.base, HTTP_PROXY: '', HTTPS_PROXY: '', https_proxy: '', ALL_PROXY: '', all_proxy: '', NO_PROXY: '', no_proxy: '' }, stdio: ['ignore', 'ignore', 'pipe'] });
+    let error = ''; child.stderr.on('data', chunk => { error += chunk; });
+    const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+    assert.equal(code, 0, error);
+    assert.deepEqual(await readFile(join(f.directory, 'bin', nativeName)), f.payload);
+    assert.equal(f.requests.length, 2);
+    assert.ok(f.requests.every(url => url.startsWith('http://ami-download.invalid/')), f.requests);
+  } finally { await f.cleanup(); }
+});
 test('npm installation streams and verifies native executable', async () => {
   const f = await fixture();
   try { const path = await install({ base: f.directory, releaseBase: f.base }); assert.deepEqual(await readFile(path), f.payload); assert.equal(path, join(f.directory, 'bin', nativeName)); }

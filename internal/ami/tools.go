@@ -139,6 +139,14 @@ func executeTool(r *Runtime, name string, input map[string]any, allowed map[stri
 	if err = validate(input, t.Parameters); err != nil {
 		return "", err
 	}
+	if t.Capability == "write" && r.Mode != "read-only" {
+		if err = r.checkScopedInstructions(input); err != nil {
+			return "", err
+		}
+	}
+	if err = r.previewTool(t, input); err != nil {
+		return "", err
+	}
 	if err = r.authorize(t.Capability); err != nil {
 		return "", err
 	}
@@ -146,6 +154,13 @@ func executeTool(r *Runtime, name string, input map[string]any, allowed map[stri
 		return "", err
 	}
 	result, err := t.Run(r, input)
+	if err == nil && t.Capability == "write" {
+		if result, ok := result.(event); ok {
+			if path, ok := result["path"].(string); ok {
+				r.Changes[path] = t.Name
+			}
+		}
+	}
 	if err == nil {
 		if s, ok := result.(string); ok {
 			content, err = r.Session.Artifacts.capture(s)

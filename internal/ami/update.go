@@ -62,6 +62,14 @@ func validReleaseTag(tag string) bool {
 		return false
 	}
 	for _, part := range parts {
+		if part == "" {
+			return false
+		}
+		for _, digit := range part {
+			if digit < '0' || digit > '9' {
+				return false
+			}
+		}
 		n, err := strconv.Atoi(part)
 		if err != nil || n < 0 {
 			return false
@@ -166,12 +174,29 @@ func downloadNative(ctx context.Context, r release, target string) error {
 func (app *application) update(ctx context.Context, a arguments) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	r, err := latestRelease(ctx, releaseAPI)
+	endpoint := releaseAPI
+	if target := a.Values["to"]; target != "" {
+		if !validReleaseTag(target) {
+			return fmt.Errorf("--to requires a version such as 0.6.0")
+		}
+		endpoint = strings.TrimSuffix(releaseAPI, "latest") + "tags/v" + strings.TrimPrefix(target, "v")
+	}
+	r, err := latestRelease(ctx, endpoint)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(app.out, "Current: %s\nLatest: %s\n", app.version, r.Tag)
-	if !newerVersion(app.version, r.Tag) {
+	if target := a.Values["to"]; target != "" && strings.TrimPrefix(r.Tag, "v") != strings.TrimPrefix(target, "v") {
+		return fmt.Errorf("release version does not match requested --to version")
+	}
+	label := "Latest"
+	if a.Values["to"] != "" {
+		label = "Target"
+	}
+	fmt.Fprintf(app.out, "Current: %s\n%s: %s\n", app.version, label, r.Tag)
+	if a.Bools["check"] {
+		return nil
+	}
+	if strings.TrimPrefix(app.version, "v") == strings.TrimPrefix(r.Tag, "v") || (a.Values["to"] == "" && !newerVersion(app.version, r.Tag)) {
 		fmt.Fprintln(app.out, "Ami is up to date")
 		return nil
 	}
@@ -224,7 +249,7 @@ func replaceExecutable(source, target string) error {
 
 // A cached, optional notification never waits on the network at task completion.
 func updateNotice(ctx context.Context, version string) (<-chan string, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	result := make(chan string, 1)
 	cacheDir := os.Getenv("XDG_CACHE_HOME")
 	if cacheDir == "" {
@@ -236,20 +261,33 @@ func updateNotice(ctx context.Context, version string) (<-chan string, context.C
 		var cached struct {
 			Checked int64  `json:"checked"`
 			Version string `json:"version"`
+			Failed  bool   `json:"failed,omitempty"`
 		}
 		b, err := os.ReadFile(path)
-		if err == nil && json.Unmarshal(b, &cached) == nil && time.Now().Unix()-cached.Checked < 86400 && time.Now().Unix() >= cached.Checked {
+		valid := err == nil && json.Unmarshal(b, &cached) == nil
+		if !valid {
+			cached.Version = ""
+		}
+		ttl := int64(86400)
+		if cached.Failed {
+			ttl = 3600
+		}
+		if valid && time.Now().Unix()-cached.Checked < ttl && time.Now().Unix() >= cached.Checked {
 			if newerVersion(version, cached.Version) {
 				result <- cached.Version
 			}
 			return
 		}
+		// Record an attempt before starting HTTP so cancellation/slow networks back off too.
+		cached.Checked, cached.Failed = time.Now().Unix(), true
+		_ = saveJSON(path, cached)
 		r, err := latestRelease(ctx, releaseAPI)
 		if err != nil {
 			return
 		}
 		cached.Checked = time.Now().Unix()
 		cached.Version = r.Tag
+		cached.Failed = false
 		_ = saveJSON(path, cached)
 		if newerVersion(version, r.Tag) {
 			result <- r.Tag

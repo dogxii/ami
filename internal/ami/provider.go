@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,7 +53,19 @@ func chatURL(base string) (string, error) {
 	u.Path = p
 	return u.String(), nil
 }
-func request(ctx context.Context, endpoint string, body any, key string, timeout time.Duration) (*http.Response, context.CancelFunc, error) {
+func retryDelay(header string, attempt int) time.Duration {
+	delay := time.Duration(400*(1<<attempt)) * time.Millisecond
+	delay += time.Duration(rand.Int64N(int64(delay/4) + 1))
+	if seconds, err := strconv.ParseInt(strings.TrimSpace(header), 10, 64); err == nil && seconds >= 0 && seconds <= 86400 {
+		return max(delay, time.Duration(seconds)*time.Second)
+	}
+	if date, err := http.ParseTime(header); err == nil {
+		return max(delay, time.Until(date))
+	}
+	return delay
+}
+
+func request(ctx context.Context, endpoint string, body any, key string, timeout time.Duration, onRetry func(time.Duration) error) (*http.Response, context.CancelFunc, error) {
 	b, err := json.Marshal(body)
 	if err != nil {
 		return nil, nil, err
@@ -72,18 +86,28 @@ func request(ctx context.Context, endpoint string, body any, key string, timeout
 		}
 		if !retry || attempt == 2 {
 			if err != nil {
+				contextErr := ctx.Err()
 				cancel()
-				if ctx.Err() != nil {
-					return nil, nil, ctx.Err()
+				if contextErr != nil {
+					return nil, nil, contextErr
 				}
 				return nil, nil, fmt.Errorf("unable to connect to API: %w", err)
 			}
 			return res, cancel, nil
 		}
+		header := ""
 		if res != nil {
+			header = res.Header.Get("Retry-After")
 			res.Body.Close()
 		}
-		if err = wait(ctx, time.Duration(400*(1<<attempt))*time.Millisecond); err != nil {
+		delay := retryDelay(header, attempt)
+		if onRetry != nil {
+			if err := onRetry(delay); err != nil {
+				cancel()
+				return nil, nil, err
+			}
+		}
+		if err = wait(ctx, delay); err != nil {
 			cancel()
 			return nil, nil, err
 		}
@@ -96,6 +120,7 @@ type Provider struct {
 	Config        Config
 	Timeout       time.Duration
 	noStreamUsage bool
+	OnRetry       func(time.Duration) error
 }
 type Reply struct {
 	Message Message
@@ -123,7 +148,7 @@ func (p *Provider) chat(ctx context.Context, messages []Message, tools []Tool, s
 	if timeout <= 0 {
 		timeout = 180 * time.Second
 	}
-	res, cancel, err := request(ctx, endpoint, body, p.Config.APIKey, timeout)
+	res, cancel, err := request(ctx, endpoint, body, p.Config.APIKey, timeout, p.OnRetry)
 	if err != nil {
 		return Reply{}, err
 	}
@@ -337,11 +362,15 @@ func webSearch(r *Runtime, m map[string]any) (any, error) {
 	if query == "" {
 		return nil, fmt.Errorf("query must not be empty")
 	}
-	key := loadConfig().TavilyKey
+	config, err := loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	key := config.TavilyKey
 	if key == "" {
 		return nil, fmt.Errorf("missing AMI_TAVILY_API_KEY")
 	}
-	res, cancel, err := request(r.Ctx, "https://api.tavily.com/search", map[string]any{"query": query, "max_results": 5, "search_depth": "basic"}, key, 60*time.Second)
+	res, cancel, err := request(r.Ctx, "https://api.tavily.com/search", map[string]any{"query": query, "max_results": 5, "search_depth": "basic"}, key, 60*time.Second, nil)
 	if err != nil {
 		return nil, err
 	}

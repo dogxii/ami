@@ -6,7 +6,7 @@ const previews = {
 <code><span class="tool">read_file</span> ... <span class="tool">search_code</span> ...</code>
 <code>Ami is a lightweight terminal agent written in Go, distributed as a native executable.
 It reads code, edits files, runs commands, and verifies results.</code>
-<code><span class="muted">gpt-5.4-mini · 2 tool calls · 684 tokens</span></code>`,
+<code><span class="muted">gpt-6.1-sol · 2 tool calls · 684 tokens</span></code>`,
   run: `<code><span class="muted">~/repo</span> ami --yes "fix the failing test"</code>
 <code><span class="tool">exec_command</span> · go test ./...</code>
 <code><span class="tool">read_file</span> · internal/ami/cli.go</code>

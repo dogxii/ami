@@ -4,7 +4,7 @@
 
 [官网](https://ami.dogxi.me) · [npm](https://www.npmjs.com/package/@dogxi/ami) · [反馈建议](https://github.com/dogxii/ami/issues)
 
-![Version](https://img.shields.io/badge/version-0.5.1-111111?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.6.0-111111?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-%40dogxi%2Fami-cb3837?style=flat-square&logo=npm)
 ![Go](https://img.shields.io/badge/Go-%3E%3D1.24-00ADD8?style=flat-square&logo=go)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
@@ -87,6 +87,8 @@ ami config get model
 ami config set model gpt-5.4-mini
 ami config set apiKey sk-...
 ami config set tavilyApiKey tvly-...
+ami doctor                 # 本地检查配置、代理、命令和目录权限
+ami doctor --check         # 发送小型模型请求，检查 API 与工具 schema 兼容性
 ```
 
 环境变量优先级高于配置文件：
@@ -96,6 +98,7 @@ AMI_BASE_URL=https://api.deepseek.com/
 AMI_API_KEY=...
 AMI_MODEL=deepseek-v4-flash
 AMI_TAVILY_API_KEY=...
+AMI_CONFIG_FILE=/path/to/config.json # 可选，自定义配置文件
 ```
 
 `AMI_TAVILY_API_KEY` 仅在使用 `web_search` 工具时需要。
@@ -113,11 +116,19 @@ ami --session <id> [task] # 恢复指定会话
 ami --no-session <task> # 不保存历史；输出保存在临时目录
 ami --json <task>      # stdout 输出 JSONL 事件
 ami sessions           # 列出当前目录的会话
+ami sessions show <id>  # 查看任务、状态、时间与磁盘占用
+ami sessions export <id> > session.jsonl # 导出原始事件记录
+ami sessions delete <id> --dry-run # 预览删除范围
+ami sessions delete <id> --yes # 删除会话及完整输出
+ami sessions prune --older-than 30 --dry-run # 预览清理 30 天未使用的会话
+ami sessions prune --older-than 30 --yes # 清理当前目录的旧会话，跳过正在使用的会话
 ami output <id> --session <session-id> --offset <bytes> # 查看完整工具输出
 ami trust              # 记住当前目录的执行授权
 ami trust --revoke     # 撤销当前目录的信任
 ami trust --list       # 查看已信任目录
 ami init                # 初始化全局配置
+ami doctor              # 本地诊断，不发送模型请求
+ami doctor --check       # 联网检查，可能产生少量模型费用
 ami config              # 查看当前配置
 ami config get <key>    # 读取配置项
 ami config set <key> <value>  # 更新配置项
@@ -134,9 +145,13 @@ ami push --rebase --yes # 明确允许无确认 rebase 和 push
 ami push --commit --rebase --yes # 暂存、提交、rebase 并推送
 ami update              # 检查并更新到最新版本
 ami update --yes        # 无需确认直接更新
+ami update --check      # 只检查版本
+ami update --to 0.5.1   # 安装指定已发布版本，也可用于回退
 ```
 
-Ami 每 24 小时最多检查一次新版本，并只在交互式终端的问答结束后提示。设置 `AMI_NO_UPDATE_CHECK=1` 可以关闭该提示。
+Ami 在后台检查新版本：成功结果缓存 24 小时，失败尝试退避 1 小时；网络检查最多等待 10 秒，不阻塞任务启动或结束。提示仅在交互式任务成功结束后显示。设置 `AMI_NO_UPDATE_CHECK=1` 可以关闭该提示。
+
+配置文件损坏或无法读取时会明确报错，不会静默切回默认提供商。`ami doctor` 显示配置来源，隐藏密钥和代理值；`--check` 只检查模型请求与工具 schema 是否被接受，不执行任何工具。
 
 ### 任务预算与上下文
 
@@ -174,9 +189,11 @@ OpenAI-compatible 提供商须支持原生 function calling 才能执行文件�
 
 ### 会话与项目指令
 
-启动时读取工作目录下的 `AGENTS.md`、`AMI.md` 和 `.ami/instructions.md`。这些文件可以说明代码规范和验证命令，不能扩大权限；修改子目录之前模型还会被要求查看该目录的指令。
+启动时从 Git 仓库根目录到工作目录依次读取 `AGENTS.md`、`AMI.md` 和 `.ami/instructions.md`；非 Git 目录从工作目录开始。更具体的目录指令优先。修改子目录前自动检查沿途指令，发现新指令或已变更的指令时，先返回给模型，再允许其重新请求修改。这些文件不能扩大权限。大指令文件的完整内容保存为可续读输出。
 
 默认会话位于 `~/.local/state/ami/sessions/`，遵循 `XDG_STATE_HOME`，也可用 `AMI_STATE_DIR` 覆盖。每个会话包含私有的 `events.jsonl` 和 `outputs/`，记录可能含有源码、命令输出和用户输入。`--no-session` 不保存会话历史，临时输出目录仍保留供排错；目录路径会显示在终端，并包含在 JSON 运行事件中。
+
+同一会话只能由一个 ami 进程恢复，系统文件锁在正常退出、取消或进程结束后释放。不同会话可独立运行。会话详情与导出不会修复或重写历史；删除和清理只作用于当前工作目录，清理时再次检查使用时间并跳过活动会话。删除最近会话后，`--continue` 会寻找剩余任务中最近使用的一项。
 
 普通模式将回答写到 stdout，工具进度和统计写到 stderr；`--json` 的 stdout 只包含 JSONL 事件，适合脚本消费。在管道、CI 或 JSON 模式下无法交互授权，执行任务应明确使用 `--yes`，或提前信任工作目录。
 
@@ -186,6 +203,7 @@ OpenAI-compatible 提供商须支持原生 function calling 才能执行文件�
 - `.git`、`node_modules` 和 `.env` 等秘密文件会被文件工具拦截；`.env.example`、`.env.sample` 和 `.env.template` 可作为模板读取。
 - `list_files` 会显示敏感目录的存在，但不会进入其中。
 - `edit_file` 需要先读取文件；文件被其他程序改变后，编辑与覆盖会拒绝，要求重新读取。
+- 修改文件或执行命令前显示替换文本、创建/覆盖标记、命令与工作目录，预览出现在授权询问之前；大内容仅截断预览。授权仍在本次运行内复用。任务结束时汇总文件工具实际修改的文件；shell 产生的改动应通过 Git 或命令结果查看。
 - `--read-only` 在工具执行入口禁止写入和 shell 命令，模型请求未开放的工具也无法绕过。
 - shell 使用系统权限，可以访问工作目录以外的位置；文件工具的路径拦截不约束 shell。`--yes` 和 `ami trust` 只应授予可信本地任务。
 - 子进程不默认继承 ami 配置和名称包含 KEY、TOKEN、SECRET、PASSWORD、CREDENTIAL 的环境变量。需要项目凭据时应单独配置所运行的程序。
@@ -211,10 +229,11 @@ make check
 
 ```bash
 node --test test/npm.test.mjs
+npm run verify:release # 在该版本 Release 已发布后验证真实安装链路
 # npm run build / npm test 也可用
 ```
 
-实现位于 `cmd/ami` 和 `internal/ami`，使用标准库和 `golang.org/x/term`，无 Agent 框架。Release 工作流生成六个平台产物与校验清单，CI 在 macOS/Linux/Windows 运行测试。推送版本标签前同步 `VERSION` 与 `package.json`；npm 发布使用 `npm publish`，无需把本机构建产物打入包内。
+实现位于 `cmd/ami` 和 `internal/ami`，使用标准库、`golang.org/x/term` 和 `golang.org/x/sys`，无 Agent 框架。Release 工作流生成六个平台产物与校验清单，CI 在 macOS/Linux/Windows 运行测试。发布后自动验证真实 npm 包安装、原生安装和命令执行，覆盖三种系统与 Node 20/22/24；这些验证通过后再发布 npm。推送版本标签前同步 `VERSION` 与 `package.json`；npm 发布使用 `npm publish`，无需把本机构建产物打入包内。
 
 原生发行支持 macOS、Linux 和 Windows 的 amd64/arm64，二进制含版本号，安装与 `ami update` 校验 Release 的 SHA-256。配置、授权与 v1 JSONL 会话可沿用 TypeScript 版本；恢复时重新读取文件版本，未记录结果的操作不会自动重放。
 

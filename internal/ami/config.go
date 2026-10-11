@@ -16,6 +16,9 @@ type Config struct {
 }
 
 func configPath() string {
+	if path := os.Getenv("AMI_CONFIG_FILE"); path != "" {
+		return path
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".config", "ami", "config.json")
 }
@@ -30,18 +33,28 @@ func stateDir() string {
 	}
 	return filepath.Join(base, "ami")
 }
-func loadConfig() Config {
+func loadConfig() (Config, error) {
 	c := Config{BaseURL: "https://api.deepseek.com/", Model: "deepseek-v4-flash"}
 	b, err := os.ReadFile(configPath())
 	if err == nil {
-		_ = json.Unmarshal(b, &c)
+		err = json.Unmarshal(b, &c)
+		if err == nil && strings.TrimSpace(string(b)) == "null" {
+			err = fmt.Errorf("config must be a JSON object")
+		}
+		if err != nil {
+			err = fmt.Errorf("invalid config file %s: %w", configPath(), err)
+		}
+	} else if os.IsNotExist(err) {
+		err = nil
+	} else {
+		err = fmt.Errorf("cannot read config file: %w", err)
 	}
 	for k, p := range map[string]*string{"AMI_BASE_URL": &c.BaseURL, "AMI_API_KEY": &c.APIKey, "AMI_MODEL": &c.Model, "AMI_TAVILY_API_KEY": &c.TavilyKey} {
 		if v, ok := os.LookupEnv(k); ok {
 			*p = v
 		}
 	}
-	return c
+	return c, err
 }
 func configValues(c Config) map[string]string {
 	return map[string]string{"baseUrl": c.BaseURL, "model": c.Model, "apiKey": c.APIKey, "tavilyApiKey": c.TavilyKey}

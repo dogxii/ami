@@ -1,6 +1,6 @@
 # Native performance measurement
 
-Measured on 2026-10-11, macOS ARM64, Go 1.26.3 and Node 22.19.0. Each command was launched independently in rotating order with 3 warmups and 25 measured samples, using warm filesystem caches. Tools used a temporary workspace/state directory, a 64 KiB text fixture and `printf ok`; every run exited successfully and file/command results were checked. No model API was called.
+Measured for ami 0.5.0 on 2026-10-11, macOS ARM64, Go 1.26.3 and Node 22.19.0. Each command was launched independently in rotating order with 3 warmups and 25 measured samples, using warm filesystem caches. Tools used a temporary workspace/state directory, a 64 KiB text fixture and `printf ok`; every run exited successfully and file/command results were checked. No model API was called.
 
 | Command | Previous Node CLI median | Go native median | Optional npm launcher median |
 | --- | ---: | ---: | ---: |

@@ -65,6 +65,10 @@ func (app *application) commit(ctx context.Context, cwd string, a arguments) err
 	return err
 }
 func (app *application) commitFlow(ctx context.Context, cwd string, all, yes bool, pushTarget string) (bool, error) {
+	config, err := loadConfig()
+	if err != nil {
+		return false, err
+	}
 	if err := gitConflicts(ctx, cwd); err != nil {
 		return false, err
 	}
@@ -89,7 +93,6 @@ func (app *application) commitFlow(ctx context.Context, cwd string, all, yes boo
 		fmt.Fprintln(app.out, "No staged changes. Run git add first, or ami commit --all.")
 		return false, nil
 	}
-	config := loadConfig()
 	if config.APIKey == "" {
 		return false, fmt.Errorf("missing API key; run ami init")
 	}

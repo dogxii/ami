@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +16,7 @@ import (
 )
 
 var validID = regexp.MustCompile(`^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`)
+var errSessionBusy = errors.New("session is already in use; finish the other ami process first")
 
 type Session struct {
 	ID, Cwd, Directory string
@@ -22,6 +24,7 @@ type Session struct {
 	Artifacts          *Artifacts
 	History            []Message
 	log                *os.File
+	lock               *os.File
 	mu                 sync.Mutex
 }
 
@@ -36,6 +39,20 @@ func sessionID(cwd, id string) (string, error) {
 			return "", fmt.Errorf("no previous session for this workspace")
 		}
 		id = strings.TrimSpace(string(b))
+		if validID.MatchString(id) {
+			if _, err := os.Stat(filepath.Join(stateDir(), "sessions", id, "events.jsonl")); os.IsNotExist(err) {
+				rows, err := listSessions(cwd)
+				if err != nil {
+					return "", err
+				}
+				for _, row := range rows {
+					if row.Task != "" {
+						return row.ID, nil
+					}
+				}
+				return "", fmt.Errorf("no previous task session for this workspace")
+			}
+		}
 	}
 	if !validID.MatchString(id) {
 		return "", fmt.Errorf("invalid session ID")
@@ -59,13 +76,27 @@ func openSession(cwd, resume string, persist bool, pageBytes int) (*Session, err
 			return nil, err
 		}
 		dir = filepath.Join(stateDir(), "sessions", id)
-		if _, err = os.Stat(filepath.Join(dir, "events.jsonl")); err != nil {
-			return nil, fmt.Errorf("session not found: %w", err)
-		}
 	} else if !persist {
 		dir, err = os.MkdirTemp("", "ami-")
 		if err != nil {
 			return nil, err
+		}
+	}
+	var lock *os.File
+	if persist {
+		lock, err = acquireSessionLock(id)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil && lock != nil {
+				lock.Close()
+			}
+		}()
+	}
+	if resume != "" {
+		if _, err = os.Stat(filepath.Join(dir, "events.jsonl")); err != nil {
+			return nil, fmt.Errorf("session not found: %w", err)
 		}
 	}
 	if err = os.MkdirAll(dir, 0700); err != nil {
@@ -75,10 +106,12 @@ func openSession(cwd, resume string, persist bool, pageBytes int) (*Session, err
 	if err != nil {
 		return nil, err
 	}
-	s := &Session{ID: id, Cwd: cwd, Directory: dir, Persistent: persist, Artifacts: a}
+	s := &Session{ID: id, Cwd: cwd, Directory: dir, Persistent: persist, Artifacts: a, lock: lock}
+	lock = nil
 	if persist {
 		s.log, err = os.OpenFile(filepath.Join(dir, "events.jsonl"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
 		if err != nil {
+			s.close()
 			return nil, err
 		}
 	}
@@ -109,6 +142,9 @@ func (s *Session) record(e event) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.log == nil {
+		return os.ErrClosed
+	}
 	_, err = s.log.Write(append(b, '\n'))
 	return err
 }
@@ -127,10 +163,39 @@ func (s *Session) compact(messages []Message) error {
 	return nil
 }
 func (s *Session) close() error {
-	if s.log == nil {
-		return nil
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var err error
+	if s.log != nil {
+		err = s.log.Close()
+		s.log = nil
 	}
-	return s.log.Close()
+	if s.lock != nil {
+		err = errors.Join(err, s.lock.Close())
+		s.lock = nil
+	}
+	return err
+}
+
+func acquireSessionLock(id string) (*os.File, error) {
+	if !validID.MatchString(id) {
+		return nil, fmt.Errorf("invalid session ID")
+	}
+	directory := filepath.Join(stateDir(), "sessions", ".locks")
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(filepath.Join(directory, id+".lock"), os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return nil, err
+	}
+	if err = lockFile(f); err != nil {
+		f.Close()
+		return nil, fmt.Errorf("lock session %s: %w", id, err)
+	}
+	// Keep the stable lock file outside the session directory, including during deletion.
+	// Closing the handle or process exit releases the kernel lock; no stale-PID repair.
+	return f, nil
 }
 func (s *Session) restore() error {
 	f, err := os.Open(filepath.Join(s.Directory, "events.jsonl"))

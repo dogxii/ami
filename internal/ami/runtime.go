@@ -3,22 +3,27 @@ package ami
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type Runtime struct {
-	Ctx       context.Context
-	Session   *Session
-	Mode      string
-	Processes *Processes
-	Versions  map[string]string
-	Emit      emitter
-	Confirm   func(context.Context, string) (bool, error)
-	approved  map[string]bool
-	cancel    context.CancelFunc
-	closeOnce sync.Once
+	Ctx             context.Context
+	Session         *Session
+	Mode            string
+	Processes       *Processes
+	Versions        map[string]string
+	Changes         map[string]string
+	Emit            emitter
+	Confirm         func(context.Context, string) (bool, error)
+	approved        map[string]bool
+	cancel          context.CancelFunc
+	closeOnce       sync.Once
+	instructionRoot string
+	instructions    map[string]string
 }
 
 func newRuntime(ctx context.Context, cwd, resume string, persist bool, page int, mode string, render func(event) error, confirm func(context.Context, string) (bool, error), secrets []string) (*Runtime, error) {
@@ -33,7 +38,7 @@ func newRuntime(ctx context.Context, cwd, resume string, persist bool, page int,
 			mode = "auto"
 		}
 	}
-	r := &Runtime{Ctx: ctx, Session: s, Mode: mode, Versions: map[string]string{}, Confirm: confirm, approved: map[string]bool{}, cancel: cancel}
+	r := &Runtime{Ctx: ctx, Session: s, Mode: mode, Versions: map[string]string{}, Changes: map[string]string{}, Confirm: confirm, approved: map[string]bool{}, cancel: cancel}
 	r.Emit = func(kind string, data event) error {
 		e := event{"type": kind, "timestamp": time.Now().UTC().Format(time.RFC3339Nano)}
 		for k, v := range data {
@@ -106,6 +111,52 @@ func (r *Runtime) authorize(cap string) error {
 	}
 	r.approved[cap] = true
 	return r.Emit("permission.approved", event{"capability": cap, "scope": "run"})
+}
+
+func previewText(text string, limit int) string {
+	if len(text) <= limit {
+		return text
+	}
+	text = text[:limit]
+	for !utf8.ValidString(text) && len(text) > 0 {
+		text = text[:len(text)-1]
+	}
+	return text + "\n… (preview truncated)"
+}
+
+func (r *Runtime) previewTool(t *Tool, input map[string]any) error {
+	if r.Mode == "read-only" || (t.Capability != "write" && t.Capability != "exec") {
+		return nil
+	}
+	if t.Name == "process_control" && stringArg(input, "action", "") == "poll" {
+		return nil
+	}
+	e := event{"name": t.Name, "cwd": r.Session.Cwd}
+	limit := r.Session.Artifacts.PageBytes / 2
+	switch t.Name {
+	case "exec_command":
+		e["command"] = previewText(stringArg(input, "command", ""), limit)
+		if cwd := stringArg(input, "cwd", ""); cwd != "" {
+			if !filepath.IsAbs(cwd) {
+				cwd = filepath.Join(r.Session.Cwd, cwd)
+			}
+			e["cwd"] = filepath.Clean(cwd)
+		}
+	case "edit_file":
+		e["path"] = stringArg(input, "path", "")
+		e["before"] = previewText(stringArg(input, "oldText", ""), limit)
+		e["after"] = previewText(stringArg(input, "newText", ""), limit)
+		e["replaceAll"] = boolArg(input, "replaceAll")
+	case "write_file":
+		e["path"] = stringArg(input, "path", "")
+		e["after"] = previewText(stringArg(input, "content", ""), limit)
+		e["overwrite"] = boolArg(input, "overwrite")
+	case "process_control":
+		e["processId"] = stringArg(input, "processId", "")
+		e["action"] = stringArg(input, "action", "")
+		e["text"] = previewText(stringArg(input, "text", ""), limit)
+	}
+	return r.Emit("tool.preview", e)
 }
 func (r *Runtime) cleanup() {
 	r.closeOnce.Do(func() { r.cancel(); r.Processes.dispose() })

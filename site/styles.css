@@ -205,7 +205,7 @@ h1 {
 
 .mode-switch {
   display: grid;
-  grid-template-columns: repeat(3, minmax(54px, 68px));
+  grid-template-columns: repeat(4, minmax(0, 68px));
   justify-content: center;
   gap: 4px;
   min-height: 38px;
@@ -217,6 +217,9 @@ h1 {
 .mode-switch button {
   display: grid;
   place-items: center;
+  min-width: 0;
+  min-height: 28px;
+  white-space: nowrap;
   border: 0;
   border-radius: 9px;
   color: rgba(255, 255, 255, 0.68);
@@ -365,7 +368,7 @@ h1 {
   }
 
   .mode-switch {
-    grid-template-columns: repeat(3, 54px);
+    grid-template-columns: repeat(4, minmax(0, 54px));
     min-height: 36px;
   }
 
@@ -402,7 +405,7 @@ h1 {
   }
 
   .mode-switch {
-    grid-template-columns: repeat(3, 48px);
+    grid-template-columns: repeat(4, minmax(0, 48px));
   }
 
   .mode-switch button {

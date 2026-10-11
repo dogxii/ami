@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -81,6 +83,36 @@ func (r *renderer) render(e event) error {
 		r.textOpen = false
 	}
 	switch e["type"] {
+	case "tool.preview":
+		fmt.Fprintf(r.err, "Planned %v in %v\n", e["name"], e["cwd"])
+		if command, ok := e["command"].(string); ok {
+			fmt.Fprintf(r.err, "$ %s\n", command)
+		}
+		if path, ok := e["path"].(string); ok {
+			label := "File"
+			if e["name"] == "write_file" {
+				label = "Create file"
+				if e["overwrite"] == true {
+					label = "Overwrite file"
+				}
+			}
+			fmt.Fprintf(r.err, "%s: %s\n", label, path)
+			if e["replaceAll"] == true {
+				fmt.Fprintln(r.err, "Replace all matching text")
+			}
+		}
+		if before, ok := e["before"].(string); ok {
+			fmt.Fprintln(r.err, "- "+strings.ReplaceAll(before, "\n", "\n- "))
+		}
+		if after, ok := e["after"].(string); ok {
+			fmt.Fprintln(r.err, "+ "+strings.ReplaceAll(after, "\n", "\n+ "))
+		}
+		if action, ok := e["action"].(string); ok {
+			fmt.Fprintf(r.err, "Process %v: %s\n", e["processId"], action)
+			if value, _ := e["text"].(string); value != "" {
+				fmt.Fprintln(r.err, value)
+			}
+		}
 	case "run.started":
 		if e["persistent"] == false {
 			fmt.Fprintf(r.err, "Outputs: %v (history disabled)\n", e["outputDirectory"])
@@ -103,8 +135,24 @@ func (r *renderer) render(e event) error {
 		fmt.Fprintln(r.err, "Context compacted.")
 	case "provider.compatibility":
 		fmt.Fprintln(r.err, e["message"])
+	case "provider.retry":
+		fmt.Fprintf(r.err, "API request retry in %v seconds.\n", e["waitSeconds"])
 	case "permission.denied":
 		fmt.Fprintln(r.err, e["reason"])
 	}
+	if kind, _ := e["type"].(string); kind == "run.completed" || kind == "run.failed" || kind == "run.cancelled" {
+		if changes, ok := e["changes"].(map[string]string); ok && len(changes) != 0 {
+			paths := make([]string, 0, len(changes))
+			for path := range changes {
+				paths = append(paths, path)
+			}
+			sort.Strings(paths)
+			fmt.Fprintln(r.err, "Files changed by file tools:")
+			for _, path := range paths {
+				fmt.Fprintf(r.err, "  %s (%s)\n", path, changes[path])
+			}
+		}
+	}
+
 	return nil
 }

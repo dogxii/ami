@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -27,14 +26,15 @@ Usage: ami [options] <task>
 Commands:
   init                    Create global configuration
   config [get|set] [key]   Show or edit configuration (secrets masked)
+  doctor                  Check setup (--check sends a model request)
   tools                   List all 11 tools
   tool <name> [json]       Run one explicitly authorized tool
-  sessions                List saved workspace sessions
+  sessions                List/show/export/delete/prune workspace sessions
   output <id>             Read saved output (--session, --offset)
   trust                   Trust workspace (--yes, --list, --revoke)
   commit                  Generate and confirm a commit (--all, --yes)
   push                    Push commits (--commit, --rebase, --yes)
-  update                  Install latest native release (--yes)
+  update                  Install release (--check, --to <version>, --yes)
 
 Options:
   --cwd <path>            Workspace directory
@@ -66,11 +66,11 @@ type arguments struct {
 func parseArgs(args []string) (arguments, error) {
 	a := arguments{Values: map[string]string{}, Bools: map[string]bool{}}
 	bools := map[string]bool{}
-	for _, k := range strings.Fields("yes ask read-only continue no-session json debug list revoke all commit rebase help version") {
+	for _, k := range strings.Fields("yes ask read-only continue no-session json debug list revoke all commit rebase help version check dry-run") {
 		bools[k] = true
 	}
 	values := map[string]bool{}
-	for _, k := range strings.Fields("cwd model session max-steps max-tokens timeout context-window output-bytes request-timeout offset") {
+	for _, k := range strings.Fields("cwd model session max-steps max-tokens timeout context-window output-bytes request-timeout offset older-than to") {
 		values[k] = true
 	}
 	for i := 0; i < len(args); i++ {
@@ -161,14 +161,16 @@ func Main(args []string, version string) int {
 	if ctx.Err() != nil || err == context.Canceled || err == context.DeadlineExceeded {
 		code = 130
 	}
+	config, _ := loadConfig()
+	secrets := []string{config.APIKey, config.TavilyKey}
 	if a.Bools["json"] {
 		kind := "run.failed"
 		if code == 130 {
 			kind = "run.cancelled"
 		}
-		fmt.Fprintln(app.out, jsonText(event{"type": kind, "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "error": redact(err.Error(), []string{loadConfig().APIKey, loadConfig().TavilyKey})}))
+		fmt.Fprintln(app.out, jsonText(event{"type": kind, "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "error": redact(err.Error(), secrets)}))
 	} else {
-		fmt.Fprintln(app.err, redact(err.Error(), []string{loadConfig().APIKey, loadConfig().TavilyKey}))
+		fmt.Fprintln(app.err, redact(err.Error(), secrets))
 	}
 	return code
 }
@@ -241,12 +243,12 @@ func (app *application) run(ctx context.Context, a arguments) error {
 	}
 	allowedOptions := "cwd model yes ask read-only continue session no-session json max-steps max-tokens timeout context-window output-bytes request-timeout debug"
 	commandOptions := map[string]string{
-		"tools": "", "config": "", "init": "", "sessions": "cwd", "output": "cwd session offset",
-		"trust": "cwd yes list revoke", "tool": "cwd read-only", "commit": "cwd all yes", "push": "cwd commit rebase yes", "update": "yes",
+		"tools": "", "config": "", "init": "", "doctor": "cwd model check request-timeout json", "sessions": "cwd yes dry-run older-than json", "output": "cwd session offset",
+		"trust": "cwd yes list revoke", "tool": "cwd read-only", "commit": "cwd all yes", "push": "cwd commit rebase yes", "update": "yes check to",
 	}
 	if options, known := commandOptions[command]; known {
 		allowedOptions = options
-		if command != "tool" && command != "output" && command != "config" && len(a.Pos) > 1 {
+		if command != "tool" && command != "output" && command != "config" && command != "sessions" && len(a.Pos) > 1 {
 			return fmt.Errorf("unexpected arguments for ami %s", command)
 		}
 	}
@@ -274,10 +276,12 @@ func (app *application) run(ctx context.Context, a arguments) error {
 		return app.config(a.Pos[1:])
 	case "init":
 		return app.init(ctx)
+	case "doctor":
+		return app.doctor(ctx, cwd, a)
 	case "trust":
 		return app.trust(ctx, cwd, a)
 	case "sessions":
-		return app.sessions(cwd)
+		return app.sessions(ctx, cwd, a)
 	case "output":
 		return app.output(cwd, a)
 	case "tool":
@@ -293,7 +297,11 @@ func (app *application) run(ctx context.Context, a arguments) error {
 	}
 }
 func (app *application) config(args []string) error {
-	values := configValues(loadConfig())
+	config, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	values := configValues(config)
 	if len(args) == 0 {
 		for _, key := range []string{"model", "baseUrl", "apiKey", "tavilyApiKey"} {
 			value := values[key]
@@ -436,39 +444,6 @@ func (app *application) trust(ctx context.Context, cwd string, a arguments) erro
 	fmt.Fprintln(app.out, label+root)
 	return nil
 }
-func (app *application) sessions(cwd string) error {
-	root, err := canonical(cwd)
-	if err != nil {
-		return err
-	}
-	entries, err := os.ReadDir(filepath.Join(stateDir(), "sessions"))
-	if os.IsNotExist(err) {
-		entries = nil
-	} else if err != nil {
-		return err
-	}
-	type row struct{ id, timestamp string }
-	rows := []row{}
-	for _, entry := range entries {
-		if !entry.IsDir() || !validID.MatchString(entry.Name()) {
-			continue
-		}
-		header, err := sessionHeader(root, entry.Name())
-		if err != nil {
-			continue
-		}
-		timestamp, _ := header["timestamp"].(string)
-		rows = append(rows, row{entry.Name(), timestamp})
-	}
-	sort.Slice(rows, func(i, j int) bool { return rows[i].timestamp > rows[j].timestamp })
-	if len(rows) == 0 {
-		fmt.Fprintln(app.out, "No saved sessions for this workspace.")
-	}
-	for _, row := range rows {
-		fmt.Fprintf(app.out, "%s  %s\n", row.id, row.timestamp)
-	}
-	return nil
-}
 func (app *application) output(cwd string, a arguments) error {
 	if len(a.Pos) != 2 {
 		return fmt.Errorf("usage: ami output <outputId>")
@@ -590,7 +565,10 @@ func (app *application) task(ctx context.Context, cwd string, a arguments) error
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 		defer cancel()
 	}
-	config := loadConfig()
+	config, err := loadConfig()
+	if err != nil {
+		return err
+	}
 	if v := a.Values["model"]; v != "" {
 		config.Model = v
 	}
@@ -631,7 +609,10 @@ func (app *application) task(ctx context.Context, cwd string, a arguments) error
 		notice, cancelNotice = updateNotice(ctx, app.version)
 		defer cancelNotice()
 	}
-	outcome := runAgent(r, AgentOptions{Task: task, Provider: &Provider{Config: config, Timeout: time.Duration(requestTimeout) * time.Second}, ContextWindow: window, MaxSteps: steps, MaxTokens: tokens, Debug: a.Bools["debug"]})
+	provider := &Provider{Config: config, Timeout: time.Duration(requestTimeout) * time.Second, OnRetry: func(delay time.Duration) error {
+		return r.Emit("provider.retry", event{"waitSeconds": delay.Seconds()})
+	}}
+	outcome := runAgent(r, AgentOptions{Task: task, Provider: provider, ContextWindow: window, MaxSteps: steps, MaxTokens: tokens, Debug: a.Bools["debug"]})
 	if outcome.Err != nil {
 		return &renderedError{outcome.Err, outcome.Status == "cancelled"}
 	}

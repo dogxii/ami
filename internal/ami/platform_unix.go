@@ -3,6 +3,7 @@
 package ami
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,13 @@ import (
 )
 
 func configureProcess(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} }
+func lockFile(f *os.File) error {
+	err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if errors.Is(err, syscall.EWOULDBLOCK) {
+		return errSessionBusy
+	}
+	return err
+}
 func signalGroup(pid int, force bool) error {
 	signal := syscall.SIGTERM
 	if force {

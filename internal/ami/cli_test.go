@@ -232,7 +232,8 @@ func TestTrustAndConfigCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("AMI_MODEL", "env-model")
-	if loadConfig().Model != "env-model" {
+	config, err := loadConfig()
+	if err != nil || config.Model != "env-model" {
 		t.Fatal("env precedence lost")
 	}
 	if err = app.config([]string{"set", "apiKey", "private-key-secret"}); err != nil {
